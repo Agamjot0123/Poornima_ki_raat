@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>ORION ASTRATHON – ASTRAX'26 | Idea Submission</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+    @page {
+      size: A4;
+      margin: 2cm;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: #1a1a1a;
+      font-size: 10.5pt;
+      line-height: 1.6;
+      padding: 40px;
+      max-width: 210mm;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 18pt;
+      margin-bottom: 2px;
+    }
+
+    h2 {
+      font-size: 13pt;
+      margin: 20px 0 8px;
+      border-bottom: 1.5px solid #333;
+      padding-bottom: 3px;
+    }
+
+    h3 {
+      font-size: 11pt;
+      margin: 12px 0 5px;
+    }
+
+    p {
+      margin: 5px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px;
+      font-size: 9.5pt;
+    }
+
+    th {
+      background: #f0f0f0;
+      padding: 6px 8px;
+      text-align: left;
+      font-weight: 600;
+      border: 1px solid #ccc;
+    }
+
+    td {
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      vertical-align: top;
+    }
+
+    ul,
+    ol {
+      padding-left: 20px;
+      margin: 5px 0;
+    }
+
+    li {
+      margin: 2px 0;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9pt;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #333;
+    }
+
+    .header .tag {
+      font-size: 9pt;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    .header .meta {
+      font-size: 9.5pt;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .arch-img {
+      text-align: center;
+      margin: 12px 0;
+    }
+
+    .arch-img img {
+      max-width: 100%;
+      border: 1px solid #ddd;
+    }
+
+    .arch-caption {
+      font-size: 8.5pt;
+      color: #777;
+      margin-top: 3px;
+    }
+
+    .repo-tree {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 12px 16px;
+      border-radius: 4px;
+      font-family: Consolas, monospace;
+      font-size: 8.5pt;
+      line-height: 1.5;
+      margin: 8px 0;
+      white-space: pre;
+    }
+
+    .footer {
+      margin-top: 24px;
+      padding-top: 10px;
+      border-top: 1.5px solid #ccc;
+      text-align: center;
+      font-size: 8.5pt;
+      color: #777;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <div class="tag">ORION ASTRATHON – ASTRAX'26</div>
+    <h1>Autonomous 3-D Asteroid Surface Shape Reconstruction</h1>
+    <p style="color:#555; font-size:10pt;">from Multimodal Partial Observations</p>
+    <div class="meta">
+      <strong>Team:</strong> Poornima ki raat &nbsp;|&nbsp;
+      <strong>Members:</strong> Agastya, Agam &nbsp;|&nbsp;
+      <strong>Date:</strong> 14 March 2026
+    </div>
+  </div>
+
+  <h2>1. Problem Statement Chosen</h2>
+  <p><strong>Autonomous 3-D Asteroid Surface Shape Reconstruction from Multimodal Partial Observations.</strong> Build a
+    fully automated pipeline that ingests sparse multimodal observational data (optical light curves and delay-Doppler
+    radar images) and produces a high-fidelity, watertight 3-D mesh of an asteroid's surface, benchmarked against
+    spacecraft-derived ground-truth models.</p>
+
+  <h2>2. Problem Understanding</h2>
+
+  <p>Only ~300 of 1,000,000+ discovered asteroids have rigorous 3-D shape models. Current methods (SHAPE suite) require
+    <strong>months of expert intervention</strong> and cannot scale to the growing NEO catalogue. Accurate shapes are
+    critical for planetary defence, Yarkovsky/YORP effect modelling, and physical characterisation (volume, density,
+    albedo).
+  </p>
+
+  <h3>The Complementary Data Problem</h3>
+  <table>
+    <tr>
+      <th>Modality</th>
+      <th>Strength</th>
+      <th>Limitation</th>
+    </tr>
+    <tr>
+      <td>Delay-Doppler Radar</td>
+      <td>Sub-10m resolution cross-sections</td>
+      <td>North-South ambiguity (3D → 2D)</td>
+    </tr>
+    <tr>
+      <td>Optical Light Curves</td>
+      <td>Precise spin axis + period</td>
+      <td>Blind to concave features</td>
+    </tr>
+  </table>
+
+  <p><strong>Key insight:</strong> Neither modality alone suffices. Radar resolves fine detail but loses a dimension;
+    light curves constrain global shape but only the convex hull. Multimodal fusion compensates for both blind spots.
+  </p>
+
+  <h3>Technical Constraints</h3>
+  <ol>
+    <li><strong>Full automation</strong> — no human-in-the-loop after configuration</li>
+    <li><strong>Non-convex recovery</strong> — craters, boulder fields, bifurcated lobes</li>
+    <li><strong>Watertight output</strong> — closed mesh exportable as <code>.obj</code>/<code>.stl</code></li>
+    <li><strong>Physical correctness</strong> — radar↔body frame transforms must be sound</li>
+  </ol>
+
+  <h2>3. Implementation Roadmap</h2>
+
+  <table>
+    <tr>
+      <th>Phase</th>
+      <th>Hours</th>
+      <th>Tasks</th>
+    </tr>
+    <tr>
+      <td><strong>1. Data Pipeline</strong></td>
+      <td>0–8</td>
+      <td>Download Bennu/Eros ground-truth from NASA PDS; fetch light curves from DAMIT; acquire radar matrices from
+        JPL; preprocessing (normalisation, phase-folding); build synthetic training data generator</td>
+    </tr>
+    <tr>
+      <td><strong>2. Model Architecture</strong></td>
+      <td>8–24</td>
+      <td>Dual-stream encoder (1D CNN+BiLSTM for light curves, ResNet-50 for radar); attention-based fusion module;
+        SPHARM coefficient predictor; spherical harmonic mesh decoder; composite loss function</td>
+    </tr>
+    <tr>
+      <td><strong>3. Training</strong></td>
+      <td>24–36</td>
+      <td>Train on synthetic data with augmentation; fine-tune on real observations; optimise SPHARM degree; automated
+        hyperparameter selection</td>
+    </tr>
+    <tr>
+      <td><strong>4. Evaluation</strong></td>
+      <td>36–48</td>
+      <td>Compute 5 metrics vs ground truth; side-by-side 3D renderings; export .obj meshes; metric report notebook;
+        final presentation</td>
+    </tr>
+  </table>
+
+  <!-- PAGE 2 -->
+  <div class="page-break"></div>
+
+  <h2>4. Tech Stack</h2>
+
+  <table>
+    <tr>
+      <th>Component</th>
+      <th>Technology</th>
+      <th>Justification</th>
+    </tr>
+    <tr>
+      <td>DL Framework</td>
+      <td>PyTorch</td>
+      <td>Custom architectures, dynamic computation graphs</td>
+    </tr>
+    <tr>
+      <td>CNN Backbone</td>
+      <td>ResNet-50</td>
+      <td>Pretrained feature extractor for radar images</td>
+    </tr>
+    <tr>
+      <td>Temporal Encoder</td>
+      <td>1D CNN + BiLSTM</td>
+      <td>Local + long-range patterns in light curves</td>
+    </tr>
+    <tr>
+      <td>3D Mesh Ops</td>
+      <td>Open3D + trimesh</td>
+      <td>Mesh I/O, reconstruction, metric computation</td>
+    </tr>
+    <tr>
+      <td>Spherical Harmonics</td>
+      <td>pyshtools</td>
+      <td>SPHARM coefficient computation</td>
+    </tr>
+    <tr>
+      <td>Ephemeris</td>
+      <td>SpiceyPy</td>
+      <td>NASA SPICE kernels, coordinate transforms</td>
+    </tr>
+    <tr>
+      <td>Asteroid Data</td>
+      <td>sbpy + astroquery</td>
+      <td>PDS, DAMIT, JPL database access</td>
+    </tr>
+    <tr>
+      <td>Visualisation</td>
+      <td>PyVista + Matplotlib</td>
+      <td>3D rendering + metric plots</td>
+    </tr>
+    <tr>
+      <td>Compute</td>
+      <td>CUDA / Colab Pro</td>
+      <td>GPU training (T4/A100)</td>
+    </tr>
+  </table>
+
+  <h2>5. Architecture</h2>
+  <h3>AsteroMesh — Dual-Stream Multimodal Fusion Network</h3>
+
+
+
+  <h3>Pipeline Overview</h3>
+  <ol>
+    <li><strong>Light-Curve Encoder:</strong> 1D CNN extracts local flux features → BiLSTM captures rotational-phase
+      dependencies → 256-dim vector</li>
+    <li><strong>Radar Encoder:</strong> ResNet-50 processes delay-Doppler matrices → 256-dim spatial feature vector</li>
+    <li><strong>Attention Fusion:</strong> Cross-modal attention learns modality weighting → 512-dim fused
+      representation</li>
+    <li><strong>SPHARM Predictor:</strong> FC layers → {a<sub>lm</sub>, b<sub>lm</sub>} coefficients up to degree l=25
+      (~676 coefficients)</li>
+    <li><strong>Mesh Decoder:</strong> r(θ,φ) = Σ(a<sub>lm</sub>cos + b<sub>lm</sub>sin)P<sub>lm</sub> on spherical grid
+      → triangulate → watertight genus-0 mesh</li>
+  </ol>
+
+  <h3>Key Design Decisions</h3>
+  <table>
+    <tr>
+      <th>Decision</th>
+      <th>Rationale</th>
+    </tr>
+    <tr>
+      <td>SPHARM over direct vertex prediction</td>
+      <td>Guarantees watertight, genus-0 topology by construction</td>
+    </tr>
+    <tr>
+      <td>Attention fusion over concatenation</td>
+      <td>Adaptive modality weighting per surface region</td>
+    </tr>
+    <tr>
+      <td>Composite loss (Chamfer + Hausdorff + IoU)</td>
+      <td>Balances average accuracy, worst-case error, and volume fidelity</td>
+    </tr>
+  </table>
+
+  <!-- PAGE 3 -->
+  <div class="page-break"></div>
+
+  <h2>6. GitHub Repository</h2>
+
+  <p><strong>Link:</strong> <a
+      href="https://github.com/Agamjot0123/Poornima_ki_raat">https://github.com/Agamjot0123/Poornima_ki_raat</a></p>
+
+  <div class="repo-tree">Orion/
+    ├── README.md # Project overview & setup
+    ├── requirements.txt # Python dependencies
+    ├── config/
+    │ └── default.yaml # Pipeline configuration
+    ├── src/
+    │ ├── data/
+    │ │ ├── light_curve_loader.py # DAMIT light-curve parser
+    │ │ ├── radar_loader.py # Delay-Doppler matrix loader
+    │ │ └── synthetic_generator.py # Training data renderer
+    │ ├── models/
+    │ │ ├── light_curve_encoder.py # 1D CNN + BiLSTM stream
+    │ │ ├── radar_encoder.py # ResNet-50 stream
+    │ │ ├── fusion.py # Attention-based fusion
+    │ │ ├── spharm_predictor.py # SPHARM coefficient heads
+    │ │ └── mesh_decoder.py # Spherical harmonic → mesh
+    │ ├── training/
+    │ │ ├── trainer.py # Training loop
+    │ │ └── losses.py # Composite loss functions
+    │ ├── evaluation/
+    │ │ ├── metrics.py # Hausdorff, Chamfer, IoU...
+    │ │ └── visualise.py # Side-by-side renderings
+    │ └── pipeline.py # End-to-end inference
+    ├── notebooks/
+    │ └── metric_report.ipynb # Quantitative evaluation
+    ├── outputs/meshes/ # Reconstructed .obj files
+    └── data/
+    ├── ground_truth/ # Bennu & Eros reference
+    └── observations/ # Light curves & radar data</div>
+
+
+
+  <div class="footer">
+    ORION ASTRATHON – ASTRAX'26 &nbsp;|&nbsp; Team Poornima ki raat (Agastya, Agam) &nbsp;|&nbsp; 14 March 2026<br>
+    <a href="https://github.com/Agamjot0123/Poornima_ki_raat">github.com/Agamjot0123/Poornima_ki_raat</a>
+  </div>
+
+</body>
+
+</html>

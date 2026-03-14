@@ -1,0 +1,43 @@
+# AsteroMesh Default Configuration
+
+# Model
+model:
+  spharm_degree: 25          # Max spherical harmonic degree (L)
+  num_coefficients: 1352     # (L+1)^2 * 2 = 676 * 2
+  encoder_dim: 256           # Output dim of each encoder stream
+  fused_dim: 512             # Dimension after fusion
+  light_curve_length: 512    # Fixed-length light curve input
+  radar_image_size: 224      # Radar image resize target
+  mesh_resolution: 100       # Grid resolution for mesh reconstruction
+
+# Training
+training:
+  batch_size: 16
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  epochs: 100
+  lr_scheduler: cosine       # cosine | step
+  warmup_epochs: 5
+  checkpoint_dir: checkpoints/
+  log_interval: 10
+
+# Loss weights
+loss:
+  chamfer_weight: 1.0
+  spharm_reg_weight: 0.01
+  mse_weight: 0.5
+
+# Data
+data:
+  train_dir: data/synthetic/train/
+  val_dir: data/synthetic/val/
+  ground_truth_dir: data/ground_truth/
+  observations_dir: data/observations/
+  num_synthetic_samples: 5000
+  val_split: 0.1
+
+# Inference
+inference:
+  model_checkpoint: checkpoints/best_model.pth
+  output_dir: outputs/meshes/
+  output_format: obj          # obj | stl | ply
