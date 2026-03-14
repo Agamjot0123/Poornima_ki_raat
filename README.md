@@ -1,3 +1,5 @@
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Agamjot0123/Poornima_ki_raat/blob/main/notebooks/AsteroMesh_Training.ipynb)
+
 # AsteroMesh — Autonomous 3-D Asteroid Shape Reconstruction
 
 Dual-stream multimodal fusion network that reconstructs watertight 3-D asteroid meshes from optical light curves and delay-Doppler radar images.
@@ -50,3 +52,4 @@ src/
 - NASA PDS Small Bodies Node
 - DAMIT Database (damit.cuni.cz)
 - JPL Asteroid Radar Research
+
