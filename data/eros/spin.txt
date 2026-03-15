@@ -1,0 +1,2 @@
+# lambda_ecl(deg)  beta_ecl(deg)  period(hours)  epoch(JD)  phi0(deg)
+11.35  17.22  5.27  2451545.0  0.0
