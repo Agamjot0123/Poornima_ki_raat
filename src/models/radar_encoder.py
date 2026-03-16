@@ -53,19 +53,20 @@ class RadarEncoder(nn.Module):
         self.layer4 = resnet.layer4
         self.avgpool = resnet.avgpool
         
-        # Projection head: 2048 → encoder_dim
+        # Projection head: 2048 (ResNet) + 2 (coords) → encoder_dim
         self.projection = nn.Sequential(
-            nn.Linear(2048, 512),
+            nn.Linear(2050, 512),
             nn.ReLU(inplace=True),
             nn.Dropout(0.2),
             nn.Linear(512, encoder_dim),
             nn.ReLU(inplace=True),
         )
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, coords: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x: (B, 1, 224, 224) radar image tensor
+            coords: (B, 2) tensor of [psi, delta] physical coordinates
         
         Returns:
             (B, encoder_dim) feature vector
@@ -85,7 +86,10 @@ class RadarEncoder(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         
-        # Project to encoder_dim
-        x = self.projection(x)
+        # Concatenate physical coordinates
+        x_fused = torch.cat([x, coords], dim=1)  # (B, 2050)
         
-        return x
+        # Project to encoder_dim
+        out = self.projection(x_fused)
+        
+        return out

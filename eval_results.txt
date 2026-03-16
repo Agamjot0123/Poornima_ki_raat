@@ -1,12 +1,13 @@
-AsteroMesh — Final Evaluation Results
-Target: Real Bennu (101955) — OSIRIS-REx Mission
-
+AsteroMesh Final Results — Real Bennu (101955)
+================================================
 Hausdorff Distance : 0.18669
 Chamfer Distance   : 0.04049
 RMSE               : 0.05666
 Completeness       : 69.94%
 Volumetric IoU     : 0.8390
-
-Method: Dual-Stream CNN + Test-Time SPHARM Optimisation
-Order  : 25
-Grid   : 80x80 (6400 points)
+================================================
+Method : Dual-Stream CNN + Test-Time SPHARM Optimisation
+Backbone: ResNet-50 (Radar) + 1D CNN BiLSTM (Light Curve)
+SPHARM Order : 25
+Grid         : 80x80 (6400 surface points)
+Device       : Kaggle GPU T4

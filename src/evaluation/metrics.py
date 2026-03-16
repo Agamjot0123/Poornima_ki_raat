@@ -3,6 +3,7 @@ Evaluation Metrics — All 5 quantitative geometric metrics.
 
 Hausdorff Distance, Chamfer Distance, RMSE, Volumetric IoU, and Completeness.
 Operates on point clouds (numpy arrays) sampled from meshes.
+Uses SciPy `cKDTree` for high-speed spatial queries, bypassing Open3D entirely.
 """
 
 import numpy as np
@@ -89,50 +90,49 @@ def rmse(X: np.ndarray, Y: np.ndarray) -> float:
     return np.sqrt(np.mean(distances ** 2))
 
 
-def volumetric_iou(pred_points: np.ndarray, gt_points: np.ndarray,
-                   resolution: int = 64) -> float:
-    """Compute volumetric IoU by voxelising both point clouds.
+def volumetric_iou(pred_mesh, gt_mesh, pitch: float = 0.05) -> float:
+    """Compute volumetric IoU by voxelising both meshes topologically.
     
     IoU = V_pred ∩ V_gt / V_pred ∪ V_gt
     
     Validates physical volume enclosure; critical for non-convex features.
+    Uses trimesh voxelization fill to create solid voxel representations.
     
     Args:
-        pred_points: (N, 3) predicted point cloud
-        gt_points: (M, 3) ground-truth point cloud
-        resolution: Voxel grid resolution
+        pred_mesh: trimesh.Trimesh predicted model
+        gt_mesh: trimesh.Trimesh ground-truth model
+        pitch: Voxel side length size
     
     Returns:
         IoU in [0, 1]
     """
-    # Find bounding box encompassing both
-    all_points = np.vstack([pred_points, gt_points])
-    mins = all_points.min(axis=0) - 0.1
-    maxs = all_points.max(axis=0) + 0.1
-    
-    # Voxelise
-    def voxelise(points, mins, maxs, resolution):
-        # Normalise to [0, resolution-1]
-        normalised = (points - mins) / (maxs - mins) * (resolution - 1)
-        indices = np.floor(normalised).astype(int)
-        indices = np.clip(indices, 0, resolution - 1)
+    try:
+        # Create solid filled voxel grids
+        pred_vox = pred_mesh.voxelized(pitch).fill()
+        gt_vox = gt_mesh.voxelized(pitch).fill()
         
-        # Create occupancy grid
-        grid = np.zeros((resolution, resolution, resolution), dtype=bool)
-        grid[indices[:, 0], indices[:, 1], indices[:, 2]] = True
+        # Get centers of filled voxels
+        pred_pts = pred_vox.points
+        gt_pts = gt_vox.points
         
-        return grid
-    
-    pred_grid = voxelise(pred_points, mins, maxs, resolution)
-    gt_grid = voxelise(gt_points, mins, maxs, resolution)
-    
-    intersection = np.logical_and(pred_grid, gt_grid).sum()
-    union = np.logical_or(pred_grid, gt_grid).sum()
-    
-    if union == 0:
+        if len(pred_pts) == 0 or len(gt_pts) == 0:
+            return 0.0
+            
+        # Check intersection via cross-containment
+        # How many predicted volume centers exist inside the ground truth volume?
+        pred_in_gt = gt_vox.is_filled(pred_pts)
+        intersect_vol = pred_in_gt.sum()
+        
+        # Union = Vol(A) + Vol(B) - Intersection
+        union_vol = len(pred_pts) + len(gt_pts) - intersect_vol
+        
+        if union_vol == 0:
+            return 0.0
+            
+        return float(intersect_vol) / float(union_vol)
+    except Exception as e:
+        # Failsafe if meshes are radically broken or unfilled
         return 0.0
-    
-    return float(intersection) / float(union)
 
 
 def completeness(X: np.ndarray, Y: np.ndarray, 
@@ -158,25 +158,31 @@ def completeness(X: np.ndarray, Y: np.ndarray,
     return float(recovered) / len(Y) * 100.0
 
 
-def compute_all_metrics(pred_points: np.ndarray, gt_points: np.ndarray,
+def compute_all_metrics(pred_mesh, gt_mesh,
+                        num_points: int = 10000,
                         tolerance: float = 0.05,
-                        iou_resolution: int = 64) -> dict:
-    """Compute all 5 evaluation metrics.
+                        iou_pitch: float = 0.05) -> dict:
+    """Compute all 5 evaluation metrics directly from meshes.
     
     Args:
-        pred_points: (N, 3) predicted point cloud
-        gt_points: (M, 3) ground-truth point cloud
+        pred_mesh: Predicted trimesh.Trimesh
+        gt_mesh: Ground-truth trimesh.Trimesh
+        num_points: Points to sample for surface metrics
         tolerance: Completeness spatial tolerance
-        iou_resolution: Voxel grid resolution for IoU
+        iou_pitch: Voxel pitch for volume calculation
     
     Returns:
         Dict with all metric values
     """
+    # Sample points for surface-level metrics (dH, dCD, RMSE, Completeness)
+    pred_points = sample_points_from_mesh(pred_mesh, num_points)
+    gt_points = sample_points_from_mesh(gt_mesh, num_points)
+    
     return {
         'hausdorff_distance': hausdorff_distance(pred_points, gt_points),
         'chamfer_distance': chamfer_distance(pred_points, gt_points),
         'rmse': rmse(pred_points, gt_points),
-        'volumetric_iou': volumetric_iou(pred_points, gt_points, iou_resolution),
+        'volumetric_iou': volumetric_iou(pred_mesh, gt_mesh, iou_pitch),
         'completeness': completeness(pred_points, gt_points, tolerance),
     }
 
@@ -208,10 +214,19 @@ def evaluate_meshes(pred_mesh, gt_mesh, num_points: int = 10000,
     Returns:
         Dict with all metrics
     """
-    pred_points = sample_points_from_mesh(pred_mesh, num_points)
-    gt_points = sample_points_from_mesh(gt_mesh, num_points)
+    # Scale meshes to unit bounding box for consistent metric calculation
+    scale = np.max(gt_mesh.extents)
+    if scale > 0:
+        pred_mesh = pred_mesh.copy()
+        gt_mesh = gt_mesh.copy()
+        pred_mesh.apply_scale(1.0 / scale)
+        gt_mesh.apply_scale(1.0 / scale)
+        
+    # Scale tolerance by the unit bound for fair completeness mapping
+    # Determine the pitch for voxelization based on the new unit scale
+    iou_pitch = 0.05 # 5% of the bounding box size
     
-    return compute_all_metrics(pred_points, gt_points, tolerance)
+    return compute_all_metrics(pred_mesh, gt_mesh, num_points, tolerance, iou_pitch)
 
 
 def main():

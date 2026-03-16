@@ -72,19 +72,23 @@ class AsteroMesh(nn.Module):
         )
     
     def forward(self, light_curve: torch.Tensor, 
-                radar_image: torch.Tensor) -> torch.Tensor:
+                radar_image: torch.Tensor,
+                lc_phases: torch.Tensor,
+                radar_coords: torch.Tensor) -> torch.Tensor:
         """Forward pass — predict SPHARM coefficients.
         
         Args:
             light_curve: (B, 1, L) light curve tensor
             radar_image: (B, 1, H, W) radar image tensor
+            lc_phases: (B, 1, L) phase angle tensor
+            radar_coords: (B, 2) rotation phase and subradar latitude
         
         Returns:
             (B, num_coefficients) predicted SPHARM coefficients
         """
-        # Encode each modality
-        lc_features = self.light_curve_encoder(light_curve)   # (B, 256)
-        radar_features = self.radar_encoder(radar_image)       # (B, 256)
+        # Encode each modality with physical coordinates
+        lc_features = self.light_curve_encoder(light_curve, lc_phases)   # (B, 256)
+        radar_features = self.radar_encoder(radar_image, radar_coords)       # (B, 256)
         
         # Fuse modalities
         fused = self.fusion(lc_features, radar_features)       # (B, 512)
@@ -96,12 +100,16 @@ class AsteroMesh(nn.Module):
     
     def reconstruct(self, light_curve: torch.Tensor,
                     radar_image: torch.Tensor,
+                    lc_phases: torch.Tensor,
+                    radar_coords: torch.Tensor,
                     scale: float = 1.0) -> list:
         """Full reconstruction pipeline — predict and decode to meshes.
         
         Args:
             light_curve: (B, 1, L) light curve tensor
             radar_image: (B, 1, H, W) radar image tensor
+            lc_phases: (B, 1, L) phase angle tensor
+            radar_coords: (B, 2) coordinate tensor
             scale: Scale factor for output meshes
         
         Returns:
@@ -109,7 +117,7 @@ class AsteroMesh(nn.Module):
         """
         self.eval()
         with torch.no_grad():
-            coefficients = self.forward(light_curve, radar_image)
+            coefficients = self.forward(light_curve, radar_image, lc_phases, radar_coords)
         
         meshes = []
         coeffs_np = coefficients.cpu().numpy()
@@ -121,12 +129,16 @@ class AsteroMesh(nn.Module):
     
     def reconstruct_single(self, light_curve: Optional[torch.Tensor] = None,
                            radar_image: Optional[torch.Tensor] = None,
+                           lc_phases: Optional[torch.Tensor] = None,
+                           radar_coords: Optional[torch.Tensor] = None,
                            scale: float = 1.0):
         """Reconstruct from a single observation (handles missing modalities).
         
         Args:
             light_curve: (1, 1, L) or None
             radar_image: (1, 1, H, W) or None
+            lc_phases: (1, 1, L) or None
+            radar_coords: (1, 2) or None
             scale: Scale factor
         
         Returns:
@@ -138,8 +150,12 @@ class AsteroMesh(nn.Module):
             light_curve = torch.zeros(1, 1, 512, device=device)
         if radar_image is None:
             radar_image = torch.zeros(1, 1, 224, 224, device=device)
-        
-        meshes = self.reconstruct(light_curve, radar_image, scale)
+        if lc_phases is None:
+            lc_phases = torch.zeros(1, 1, 512, device=device)
+        if radar_coords is None:
+            radar_coords = torch.zeros(1, 2, device=device)
+            
+        meshes = self.reconstruct(light_curve, radar_image, lc_phases, radar_coords, scale)
         return meshes[0]
     
     def count_parameters(self) -> dict:

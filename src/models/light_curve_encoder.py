@@ -26,8 +26,8 @@ class LightCurveEncoder(nn.Module):
         
         # 1D CNN feature extractor
         self.cnn = nn.Sequential(
-            # Block 1: 1 → 32 channels
-            nn.Conv1d(1, 32, kernel_size=7, stride=1, padding=3),
+            # Block 1: 2 (flux + phase) → 32 channels
+            nn.Conv1d(2, 32, kernel_size=7, stride=1, padding=3),
             nn.BatchNorm1d(32),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(kernel_size=2, stride=2),  # L → L/2
@@ -64,16 +64,21 @@ class LightCurveEncoder(nn.Module):
             nn.Dropout(0.1),
         )
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, phase_angles: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x: (B, 1, L) light curve tensor
+            x: (B, 1, L) light curve flux tensor
+            phase_angles: (B, 1, L) solar phase angle tensor
         
         Returns:
             (B, encoder_dim) feature vector
         """
-        # CNN: (B, 1, L) → (B, 128, L/8)
-        features = self.cnn(x)
+        # Concatenate flux and phase angles along the channel dimension
+        # Shape: (B, 2, L)
+        fused_input = torch.cat([x, phase_angles], dim=1)
+        
+        # CNN: (B, 2, L) → (B, 128, L/8)
+        features = self.cnn(fused_input)
         
         # Transpose for LSTM: (B, 128, L/8) → (B, L/8, 128)
         features = features.permute(0, 2, 1)
